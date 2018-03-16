@@ -1,6 +1,7 @@
 import pandas as pd
 import datetime
 import my_utils
+import numpy as np
 
 
 def timestamp_2_date(x):
@@ -10,7 +11,7 @@ def timestamp_2_date(x):
 def extract_datetime(df, col):
     # 20180918000001
     # YYYYMMDDHHMMSS
-    df[col] = df[col].astype(int)
+    df[col] = df[col].astype(np.int64)
     df['context_year'] = df[col].values//10000000000
     df['context_month'] = (df[col].values//100000000) % 100
     df['context_day'] = (df[col].values//1000000) % 100
@@ -70,7 +71,6 @@ df_concat.rename(columns={'index': 'instanceID'}, inplace=True)
 df_concat['context_timestamp_string'] = df_concat['context_timestamp'].apply(timestamp_2_date)
 df_concat = extract_datetime(df_concat, 'context_timestamp_string')
 df_concat = pre_process_data(df_concat)
-
 
 save_dir = '../data/df_concat.csv'
 df_concat.to_csv(save_dir, index=False)

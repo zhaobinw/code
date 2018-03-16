@@ -347,7 +347,10 @@ def extract_feature_in_pre_days(df):
     for context_day in [21, 22, 23]:
         df_ = my_utils.select_range_by_day(df, context_day-3, context_day)
         df_ = my_utils.fix_is_trade(df_, context_day)
-        for col in df_.columns:
+        str_cols = ['context_timestamp', 'instanceID', 'is_trade', 'user_id', 'item_id',
+            'user_id', 'context_id', 'shop_id', 'item_brand_id',
+            'category_0', 'category_1', 'category_2']
+        for col in str_cols:
             if df_[col].dtype != str:
                 df_.ix[:, col] = df_[col].astype(str)
         gen_usr_feature_intermediates_1var(df_, context_day)

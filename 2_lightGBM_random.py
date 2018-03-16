@@ -11,6 +11,14 @@ from sklearn.model_selection import train_test_split
 import my_utils
 
 
+def logit(x):
+    return np.log(x/(1-x))
+
+
+def logistic(x):
+    return 1/(1+np.exp(-x))
+
+
 def logloss(act, pred):
     epsilon = 1e-15
     pred = sp.maximum(epsilon, pred)
@@ -107,24 +115,34 @@ feature_cols = [
 
 label_col = 'is_trade'
 
-df_train = my_utils.select_range_by_day(df, 18, 22)
-df_val = my_utils.select_range_by_day(df, 23, 23)
+df_train = my_utils.select_range_by_day(df, 18, 23)
 df_test = my_utils.select_range_by_day(df, 24, 24)
 print(df_test.head())
-X_train, y_train = get_data_and_label(df_train, feature_cols, label_col)
-X_val, y_val = get_data_and_label(df_val, feature_cols, label_col)
+X, y = get_data_and_label(df_train, feature_cols, label_col)
+
 X_test, y_test = get_data_and_label(df_test, feature_cols, label_col)
 
-logloss_baseline(y_train, y_val)
+pred = []
 
-model = lgb_clf
-model.fit(X_train, y_train,
-          eval_set=(X_val, y_val),
-          early_stopping_rounds=50,
-          verbose=50,
-        )
+num_round = 15
+for random_seed in range(1,num_round):
+    X_train, X_val, y_train, y_val = train_test_split(X, y, test_size=0.9, random_state=random_seed)
+    model = lgb_clf
+    model.fit(X_train, y_train,
+              eval_set=(X_val, y_val),
+              early_stopping_rounds=50,
+              verbose=50,
+              )
+    pred_ = model.predict_proba(X_test)[:, 1]
+    pred_loss = logloss(y_test, pred_)
+    print('random_seed:%d, log-loss:%f'%(random_seed, pred_loss))
+    if len(pred) == 0:
+        pred = logit(pred_)
+    else:
+        pred += logit(pred_)
 
-pred = model.predict_proba(X_test)[:,1]
+# logloss_baseline(y_train, y_val)
+pred = logistic(pred/num_round)
 pred_loss = logloss(y_test, pred)
 print(pred_loss)
 
@@ -132,6 +150,7 @@ print(pred_loss)
 '''
 原始数据 valid_0's binary_logloss: 0.0824322
 加入用户维度数据 valid_0's binary_logloss: 0.0801978
+random_seed, 6times, 0.08020430123815359 
 '''
 
 # y_pred = np.round(y_pred, 12)

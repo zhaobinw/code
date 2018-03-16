@@ -43,6 +43,13 @@ def fix_is_trade(df, context_day):
     df.ix[mask, ['is_trade']] = "0"
     return df
 
+
+def col2str(df):
+    for col in df.columns:
+        if df[col].dtype != str:
+            df.ix[:, col] = df[col].values.astype(str)
+    return df
+
 cols_basic = ['instance_id', 'is_trade', 'item_id', 'user_id', 'context_id', 'shop_id']
 cols_ad_product = ['item_id', 'item_category_list', 'item_property_list', 'item_brand_id',
                        'item_city_id', 'item_price_level', 'item_sales_level', 'item_collected_level',

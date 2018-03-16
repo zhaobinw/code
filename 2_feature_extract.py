@@ -15,11 +15,11 @@ def gen_usr_feature_intermediates_1var(df_, context_day):
     del t_var1_instanceID
     print('%s saved.' % save_dir)
 
-    t_var1_context_day = t_var1['context_timestamp'].agg(lambda x: ':'.join(x)).reset_index()
-    t_var1_context_day.rename(columns={'context_timestamp': 'context_timestamps'}, inplace=True)
-    save_dir = '../intermediates/context_timestamp_%s.csv' % (context_day)
-    t_var1_context_day.to_csv(save_dir, index=False)
-    del t_var1_context_day
+    t_var1_context_timestamp = t_var1['context_timestamp'].agg(lambda x: ':'.join(x)).reset_index()
+    t_var1_context_timestamp.rename(columns={'context_timestamp': 'context_timestamps'}, inplace=True)
+    save_dir = '../intermediates/t_var1_context_timestamp_%s.csv' % (context_day)
+    t_var1_context_timestamp.to_csv(save_dir, index=False)
+    del t_var1_context_timestamp
     print('%s saved.' % save_dir)
 
     t_var1_is_trade = t_var1['is_trade'].agg(lambda x: ':'.join(x)).reset_index()
@@ -98,7 +98,7 @@ def gen_usr_feature_click_var(df_, var_tmp, context_day):
     other_feature.fillna(0, inplace=True)
 
     print('len :', len(df_))
-    df_ = df_[df_['his_usr_clk_cnt'] > 1]
+    df_ = df_.ix[df_['his_usr_clk_cnt'] > 1, :]
     print('len of usr clk > 1 :', len(df_))
 
     def is_firstlastone(s):
@@ -178,7 +178,7 @@ def gen_usr_feature_click_var(df_, var_tmp, context_day):
         dates = dates.split(':')
         dates = [int(x) // 1000000 for x in dates]
         is_trade = is_trade.split(':')
-        is_trade = [int(x) for x in is_trade]
+        is_trade = [int(float(x)) for x in is_trade]
         gaps = []
         for d, _is_trade in zip(dates, is_trade):
             if (_is_trade == 1) & (d < context_day):
@@ -255,30 +255,33 @@ def gen_usr_feature_click_var(df_, var_tmp, context_day):
             return count
 
     t_var2_instanceID = pd.read_csv(
-        '../train_count/other_feature/t_var2_%s_instanceID_%s.csv' % (var_tmp, context_day))
+        '../intermediates/t_var2_%s_instanceID_%s.csv' % (var_tmp, context_day))
     t_var2_context_timestamp = pd.read_csv(
-        '../train_count/other_feature/t_var2_%s_context_timestamp_%s.csv' % (var_tmp, context_day))
+        '../intermediates/t_var2_%s_context_timestamp_%s.csv' % (var_tmp, context_day))
     t_var2_is_trade = pd.read_csv(
-        '../train_count/other_feature/t_var2_%s_is_trade_%s.csv' % (var_tmp, context_day))
+        '../intermediates/t_var2_%s_is_trade_%s.csv' % (var_tmp, context_day))
+    # t_var2_instanceID = my_utils.col2str(t_var2_instanceID)
+    # t_var2_context_timestamp = my_utils.col2str(t_var2_context_timestamp)
+    # t_var2_is_trade = my_utils.col2str(t_var2_is_trade)
 
     t3 = df_.ix[df_['context_day'] == context_day, [var, var_tmp, 'instanceID']]
     t3 = pd.merge(t3, t_var2_context_timestamp, on=[var, var_tmp], how='left')
-    t3['context_timestamp_idx'] = (t3.context_timestamp.str.cat(t3.context_timestamps, sep='-'))
+    t3['instanceID_idx'] = (t3.instanceID.str.cat(t3.context_timestamps, sep='-'))
     t3['his_usr_clk_same_%s_fir_las' % var_tmp] = 0
     t3['his_usr_clk_same_%s_seq' % var_tmp] = 0
     t3['his_usr_clk_same_%s_fir_las' % var_tmp], t3['his_usr_clk_same_%s_seq' % var_tmp] = \
-        zip(*t3.context_timestamp_idx.apply(is_firstlastone))
-    t3 = t3[['context_timestamp',
+        zip(*t3.instanceID_idx.apply(is_firstlastone))
+    t3 = t3[['instanceID',
              'his_usr_clk_same_%s_fir_las' % var_tmp,
              'his_usr_clk_same_%s_seq' % var_tmp]]
-    other_feature = pd.merge(other_feature, t3, on=['context_timestamp'], how='left')
+    other_feature = pd.merge(other_feature, t3, on=['instanceID'], how='left')
     del t3
 
     t7 = df_.ix[df_['context_day'] == context_day, [var, var_tmp, 'context_timestamp', 'instanceID']]
     t7 = pd.merge(t7, t_var2_context_timestamp, on=[var, var_tmp], how='left')
     t7 = pd.merge(t7, t_var2_instanceID, on=[var, var_tmp], how='left')
     t7 = pd.merge(t7, t_var2_is_trade, on=[var, var_tmp], how='left')
-    t7['context_timestamp_date'] = (t7.context_timestamp.str.cat(t7.dates, sep='_'))
+    t7['context_timestamp_date'] = (t7.context_timestamp.str.cat(t7.context_timestamps, sep='_'))
     t7['context_timestamp_date_is_trade'] = t7.context_timestamp_date.str.cat(t7.is_trade, sep='_')
     t7['context_timestamp_date'] = t7.context_timestamp_date.str.cat(t7.instanceID, sep='_')
     t7['context_timestamp_date'] = t7.context_timestamp_date.str.cat(t7.instanceIDs, sep='_')
@@ -306,16 +309,16 @@ def gen_usr_feature_click_var(df_, var_tmp, context_day):
 
 
     t_var1_instanceID = pd.read_csv(
-        '../train_count/other_feature/t_var1_instanceID_%s.csv' % (context_day))
+        '../intermediates/t_var1_instanceID_%s.csv' % (context_day))
     t_var1_context_timestamp = pd.read_csv(
-        '../train_count/other_feature/t_var1_context_timestamp_%s.csv' % (context_day))
-    t_var1_is_trade = pd.read_csv('../train_count/other_feature/t_var1_is_trade_%s.csv' % (context_day))
+        '../intermediates/t_var1_context_timestamp_%s.csv' % (context_day))
+    t_var1_is_trade = pd.read_csv('../intermediates/t_var1_is_trade_%s.csv' % (context_day))
 
     t9 = df_.ix[df_['context_day'] == context_day, [var, 'context_timestamp', 'instanceID']]
     t9 = pd.merge(t9, t_var1_context_timestamp, on=[var], how='left')
     t9 = pd.merge(t9, t_var1_instanceID, on=[var], how='left')
     t9 = pd.merge(t9, t_var1_is_trade, on=[var], how='left')
-    t9['context_timestamp_date'] = (t9.context_timestamp.str.cat(t9.dates, sep='_'))
+    t9['context_timestamp_date'] = (t9.context_timestamp.str.cat(t9.context_timestamps, sep='_'))
     t9['context_timestamp_date_is_trade'] = t9.context_timestamp_date.str.cat(t9.is_trade, sep='_')
     t9['context_timestamp_date'] = t9.context_timestamp_date.str.cat(t9.instanceID, sep='_')
     t9['context_timestamp_date'] = t9.context_timestamp_date.str.cat(t9.instanceIDs, sep='_')
@@ -344,15 +347,18 @@ def gen_usr_feature_click_var(df_, var_tmp, context_day):
 
 
 def extract_feature_in_pre_days(df):
-    for context_day in [21, 22, 23]:
+    for context_day in range(18,26):
         df_ = my_utils.select_range_by_day(df, context_day-3, context_day)
         df_ = my_utils.fix_is_trade(df_, context_day)
         str_cols = ['context_timestamp', 'instanceID', 'is_trade', 'user_id', 'item_id',
             'user_id', 'context_id', 'shop_id', 'item_brand_id',
             'category_0', 'category_1', 'category_2']
-        for col in str_cols:
-            if df_[col].dtype != str:
-                df_.ix[:, col] = df_[col].astype(str)
+        # for col in str_cols:
+        #     if df_[col].dtype != str:
+        #         df_.ix[:, col] = df_[col].values.astype(str)
+        df_.context_timestamp = df_.context_timestamp.astype(str)
+        df_.instanceID = df_.instanceID.astype(str)
+        df_.is_trade = df_.is_trade.astype(str)
         gen_usr_feature_intermediates_1var(df_, context_day)
         gen_usr_feature_intermediates_2var(df_, 'item_id', context_day)
         gen_usr_feature_intermediates_2var(df_, 'item_brand_id', context_day)
@@ -369,4 +375,5 @@ use_cols = ['context_timestamp', 'instanceID', 'context_day', 'is_trade', 'user_
             'user_id', 'context_id', 'shop_id', 'item_brand_id',
             'category_0', 'category_1', 'category_2']
 df = pd.read_csv("../data/df_concat.csv", usecols=use_cols)
+print(df['context_day'].unique())
 extract_feature_in_pre_days(df)
